@@ -21,7 +21,6 @@
 html, body, #root {
   height: 100%;
   width: 100%;
-  overflow: hidden;
 }
 
 body {
@@ -35,8 +34,8 @@ body {
 .app {
   display: flex;
   flex-direction: column;
-  height: 100vh;
-  overflow: hidden;
+  min-height: 100vh;
+  overflow-y: auto;
 }
 
 /* ===== TOP BAR ===== */
@@ -325,7 +324,7 @@ body {
 .main {
   display: flex;
   flex: 1;
-  overflow: hidden;
+  overflow: auto;
   transition: padding-right 0.3s ease;
 }
 
