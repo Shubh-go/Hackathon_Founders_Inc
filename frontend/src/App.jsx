@@ -621,14 +621,13 @@ export default function App() {
       setHasSkipped(true);
       setShowLearning(true);
     }
-    if (playerRef.current && hasLiveQueue && canUsePlayback && deviceId) {
-      if (!hasActiveMixInPlayer) {
-        await playLiveResult();
-      } else {
-        await playerRef.current.nextTrack();
-      }
+    // Skip on user's active Spotify device (phone) via Connect API
+    try {
+      await fetch("/api/player/next", { method: "POST" });
+    } catch (_) {
+      // Offline or not authenticated — visual skip still works
     }
-  }, [canUsePlayback, contextKey, deviceId, hasActiveMixInPlayer, hasLiveQueue, playLiveResult, triggerSkipFlash]);
+  }, [contextKey, data, triggerSkipFlash]);
 
   const handleCreatePreview = useCallback(async () => {
     await callPlaylistRoute({ createPlaylist: false });
@@ -659,25 +658,11 @@ export default function App() {
   }, [canUsePlayback, deviceId, hasActiveMixInPlayer, hasLiveQueue, playLiveResult]);
 
   const handlePreviousTrack = useCallback(async () => {
-    if (!hasLiveQueue || !canUsePlayback || !deviceId) {
-      return;
-    }
-    if (!hasActiveMixInPlayer) {
-      await playLiveResult();
-      return;
-    }
-    await playerRef.current?.previousTrack();
-  }, [canUsePlayback, deviceId, hasActiveMixInPlayer, hasLiveQueue, playLiveResult]);
+    try { await fetch("/api/player/previous", { method: "POST" }); } catch (_) {}
+  }, []);
 
   const handleNextTrack = useCallback(async () => {
-    if (!hasLiveQueue || !canUsePlayback || !deviceId) {
-      return;
-    }
-    if (!hasActiveMixInPlayer) {
-      await playLiveResult();
-      return;
-    }
-    await playerRef.current?.nextTrack();
+    try { await fetch("/api/player/next", { method: "POST" }); } catch (_) {}
   }, [canUsePlayback, deviceId, hasActiveMixInPlayer, hasLiveQueue, playLiveResult]);
 
   const handleLogout = useCallback(async () => {

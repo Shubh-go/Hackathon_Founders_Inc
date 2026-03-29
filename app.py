@@ -1388,6 +1388,24 @@ def play_on_browser_device():
     return jsonify({"success": True, "device_id": device_id})
 
 
+@app.post("/api/player/next")
+def player_next():
+    """Skip to next track on the user's active Spotify device (phone)."""
+    response, error = spotify_api_post("/me/player/next")
+    if error:
+        return error
+    return jsonify({"success": True}), 204
+
+
+@app.post("/api/player/previous")
+def player_previous():
+    """Go to previous track on the user's active Spotify device (phone)."""
+    response, error = spotify_api_post("/me/player/previous")
+    if error:
+        return error
+    return jsonify({"success": True}), 204
+
+
 @app.get("/logout")
 def logout():
     session.clear()
