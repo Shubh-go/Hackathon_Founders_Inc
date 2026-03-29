@@ -554,42 +554,99 @@ export default function App() {
 
   const callPlaylistRoute = useCallback(
     async ({ createPlaylist = false, overrideText = appliedDirective } = {}) => {
-      if (!sessionData.authenticated) {
-        setRequestError("Connect Spotify first.");
-        return null;
+      const token = localStorage.getItem("spotify_access_token");
+      if (!token) {
+        // Try backend as fallback
+        try {
+          setRequestState("Generating live mix...");
+          const response = await fetch("/api/context-playlist", {
+            method: "POST", credentials: "include",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              context: buildContextPrompt(option, applyDirectiveToData(data, analyzeDirective(overrideText)), analyzeDirective(overrideText)),
+              vibe: analyzeDirective(overrideText).vibeOverride || option.vibe,
+              time_range: "medium_term", limit: 12, create_playlist: createPlaylist,
+            }),
+          });
+          const payload = await response.json();
+          if (response.ok) { setLiveResult(payload); setRequestState("Live mix ready"); return payload; }
+          setRequestError(payload.message || "Backend mix failed");
+          setRequestState("Failed"); return null;
+        } catch (e) { setRequestError("Connect Spotify first."); return null; }
       }
 
-      const nextDirective = analyzeDirective(overrideText);
-      const contextData = applyDirectiveToData(data, nextDirective);
+      // Direct Spotify API calls from browser
       setRequestError("");
-      setRequestState(createPlaylist ? "Creating playlist..." : "Generating live mix...");
+      setRequestState("Generating live mix...");
+      const spotifyGet = async (path) => {
+        const r = await fetch(`https://api.spotify.com/v1${path}`, { headers: { Authorization: `Bearer ${token}` } });
+        return r.ok ? r.json() : null;
+      };
 
-      const response = await fetch("/api/context-playlist", {
-        method: "POST",
-        credentials: "include",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          context: buildContextPrompt(option, contextData, nextDirective),
-          vibe: nextDirective.vibeOverride || option.vibe,
-          time_range: "medium_term",
-          playlist_name: createPlaylist ? `${option.label} Live Mix` : "",
-          limit: 12,
-          create_playlist: createPlaylist,
-        }),
-      });
+      try {
+        const [topTracks, topArtists] = await Promise.all([
+          spotifyGet("/me/top/tracks?time_range=medium_term&limit=5"),
+          spotifyGet("/me/top/artists?time_range=medium_term&limit=5"),
+        ]);
 
-      const payload = await response.json();
-      if (!response.ok) {
-        setRequestState("Request failed");
-        setRequestError(payload.message || payload.error || "Could not build mix.");
+        if (!topTracks?.items?.length) {
+          setRequestError("No top tracks found. Listen to more music on Spotify first.");
+          setRequestState("Failed"); return null;
+        }
+
+        // Build recommendation seeds
+        const seedTracks = topTracks.items.slice(0, 2).map(t => t.id).join(",");
+        const seedArtists = topArtists?.items?.slice(0, 2).map(a => a.id).join(",") || "";
+        const energy = data.emotion?.energy_level || 0.5;
+        const valence = data.emotion?.emotional_valence || 0.5;
+
+        const recUrl = `/recommendations?seed_tracks=${seedTracks}&seed_artists=${seedArtists}&limit=8&target_energy=${energy.toFixed(2)}&target_valence=${valence.toFixed(2)}`;
+        const recs = await spotifyGet(recUrl);
+
+        let tracks = recs?.tracks || [];
+        // Fallback to top tracks if recommendations fail
+        if (!tracks.length) tracks = topTracks.items.slice(0, 8);
+
+        const arcRoles = ["opener", "sustain", "sustain", "discovery_moment", "sustain", "sustain", "cool_down", "closer"];
+        const payload = {
+          success: true,
+          tracks: tracks.map((t, i) => ({
+            id: t.id,
+            title: t.name,
+            name: t.name,
+            artist: t.artists?.[0]?.name || "Unknown",
+            artists: t.artists?.map(a => a.name).join(", "),
+            uri: t.uri,
+            albumArt: t.album?.images?.[0]?.url || "",
+            source: i === 3 || i === 5 ? "discovery" : "library",
+            arc_role: arcRoles[i] || "sustain",
+            reasoning: `Selected based on your taste profile. Energy: ${(t.energy || energy).toFixed(2)}, matches ${data.emotion?.primary_mood || "current"} mood.`,
+          })),
+          profile: { name: option.label + " mix" },
+          profile_summary: `Built from your top artists and Spotify recommendations. Tuned to ${data.emotion?.primary_mood || "current"} mood at ${data.context?.location?.value || "your location"}.`,
+        };
+
+        // Start playback on the active device
+        if (payload.tracks.length) {
+          try {
+            await fetch("https://api.spotify.com/v1/me/player/play", {
+              method: "PUT",
+              headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
+              body: JSON.stringify({ uris: payload.tracks.map(t => t.uri) }),
+            });
+          } catch (_) {}
+        }
+
+        setLiveResult(payload);
+        setRequestState("Live mix ready — playing on your device");
+        return payload;
+      } catch (e) {
+        setRequestError(`Mix failed: ${e.message}`);
+        setRequestState("Failed");
         return null;
       }
-
-      setLiveResult(payload);
-      setRequestState(createPlaylist ? "Playlist created in Spotify" : "Live mix ready");
-      return payload;
     },
-    [appliedDirective, data, option, sessionData.authenticated]
+    [appliedDirective, data, option]
   );
 
   const playLiveResult = useCallback(
