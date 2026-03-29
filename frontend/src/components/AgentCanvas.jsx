@@ -15,6 +15,61 @@ const AGENTS_META = {
   dj:       { name: "MAESTRO", color: [29, 185, 84],   accent: [255, 215, 0],   zone: [10, 28, 14]  },
 };
 
+function humanizePhase(phase) {
+  return (phase || "mix world")
+    .replace(/_/g, " ")
+    .replace(/\b\w/g, (char) => char.toUpperCase());
+}
+
+function shortenLabel(value, maxLength = 18) {
+  const text = String(value || "").replace(/\s+/g, " ").trim();
+  if (!text) return "Unknown";
+  return text.length > maxLength ? `${text.slice(0, maxLength - 1)}...` : text;
+}
+
+function getLocationWorld(value) {
+  if (!value) return "Unknown Zone";
+  return value.split(" · ")[0] || value;
+}
+
+function getAgentWorldData(data, agentKey) {
+  const context = data?.context || {};
+
+  if (agentKey === "emotion") {
+    return {
+      title: shortenLabel(data?.emotion?.primary_mood || "Mood core", 16),
+      subtitle: `${Math.round((data?.emotion?.energy_level || 0.5) * 100)}% energy`,
+    };
+  }
+
+  if (agentKey === "dj") {
+    return {
+      title: shortenLabel(humanizePhase(data?.trajectory?.current_phase), 16),
+      subtitle: `Target ${Math.round((data?.trajectory?.energy_target || 0.5) * 100)}%`,
+    };
+  }
+
+  const source = context[agentKey] || {};
+  if (agentKey === "location") {
+    return {
+      title: shortenLabel(getLocationWorld(source.value), 16),
+      subtitle: shortenLabel(source.interpretation || "location world", 18),
+    };
+  }
+
+  if (agentKey === "weather") {
+    return {
+      title: shortenLabel(source.value || "Weather feed", 16),
+      subtitle: shortenLabel(source.interpretation || "atmosphere", 18),
+    };
+  }
+
+  return {
+    title: shortenLabel(source.value || `${agentKey} signal`, 16),
+    subtitle: shortenLabel(source.interpretation || "live signal", 18),
+  };
+}
+
 // ── Station layout (fractions of w, h) ──
 const STATION_LAYOUT = {
   time:     { hx: 0.10, hy: 0.42 },
@@ -621,6 +676,32 @@ export default function AgentCanvas({ data, skipEvent, debateActive }) {
     function drawStation(x, y, agentKey, fc) {
       const dw = 28, dh = 8, dx = x - dw / 2, dy = y + 20;
       const [cr, cg, cb] = AGENTS_META[agentKey].color;
+      const world = getAgentWorldData(dataRef.current, agentKey);
+      const badgeW = 64;
+      const badgeH = 18;
+      const badgeX = x - (badgeW / 2);
+      const badgeY = y - 42;
+
+      p.noStroke();
+      p.fill(cr, cg, cb, 12);
+      p.rect(badgeX - 2, badgeY - 2, badgeW + 4, badgeH + 4, 3);
+      p.fill(8, 10, 16, 220);
+      p.rect(badgeX, badgeY, badgeW, badgeH, 3);
+      p.fill(cr, cg, cb, 110);
+      p.rect(badgeX, badgeY, badgeW, 2, 3);
+      p.fill(cr, cg, cb, 24);
+      p.rect(badgeX + 2, badgeY + badgeH - 4, badgeW - 4, 2, 2);
+      p.fill(cr, cg, cb, 18);
+      p.rect(x - 1, badgeY + badgeH, 2, 12);
+      p.textAlign(p.CENTER, p.CENTER);
+      p.textFont("monospace");
+      p.fill(cr, cg, cb, 185);
+      p.textSize(5);
+      p.text(world.title.toUpperCase(), x, badgeY + 6);
+      p.fill(180, 188, 200, 145);
+      p.textSize(4);
+      p.text(world.subtitle, x, badgeY + 12);
+
       p.noStroke();
       p.fill(22, 24, 34); p.rect(dx, dy, dw, dh);
       p.fill(30, 33, 45); p.rect(dx, dy, dw, 2);
