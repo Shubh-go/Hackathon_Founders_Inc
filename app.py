@@ -1151,12 +1151,16 @@ def callback():
     token_data = response.json()
     store_token_payload(token_data)
     session.pop("spotify_auth_state", None)
-    # Pass token to frontend via query params (frontend grabs and stores in localStorage)
+    # Write token to localStorage via a landing page, then redirect to app
     access_token = token_data.get("access_token", "")
     refresh_token = token_data.get("refresh_token", "")
-    resp = make_response(redirect(
-        f"{get_base_url()}/?connected=1&access_token={access_token}&refresh_token={refresh_token}"
-    ))
+    base = get_base_url()
+    html = f"""<!DOCTYPE html><html><head><script>
+localStorage.setItem("spotify_access_token","{access_token}");
+localStorage.setItem("spotify_refresh_token","{refresh_token}");
+window.location.href="{base}/";
+</script></head><body>Connecting...</body></html>"""
+    resp = make_response(html)
     set_token_cookie(resp, token_data)
     return resp
 
