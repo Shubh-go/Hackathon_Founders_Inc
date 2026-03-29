@@ -12,7 +12,7 @@ from dotenv import load_dotenv
 from flask import Flask, jsonify, make_response, redirect, render_template_string, request, session
 
 
-load_dotenv()
+load_dotenv(override=False)  # Don't override Vercel env vars with .env file
 
 app = Flask(__name__)
 app.secret_key = os.environ.get("FLASK_SECRET_KEY", "dev-secret-change-me")
@@ -1473,6 +1473,19 @@ def player_previous():
     if error:
         return error
     return jsonify({"success": True}), 204
+
+
+@app.get("/api/debug-auth")
+def debug_auth():
+    """Debug endpoint to check auth state."""
+    session_token = session.get("spotify_token")
+    cookie_token = get_token_from_cookie()
+    return jsonify({
+        "has_session_token": session_token is not None,
+        "has_cookie_token": cookie_token is not None,
+        "session_keys": list(session.keys()) if session else [],
+        "cookie_names": list(request.cookies.keys()),
+    })
 
 
 @app.get("/logout")
