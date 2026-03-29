@@ -1151,12 +1151,11 @@ def callback():
     token_data = response.json()
     store_token_payload(token_data)
     session.pop("spotify_auth_state", None)
-    # Pass token to frontend via URL hash (frontend grabs it, calls Spotify directly)
+    # Pass token to frontend via query params (frontend grabs and stores in localStorage)
     access_token = token_data.get("access_token", "")
     refresh_token = token_data.get("refresh_token", "")
-    expires_in = token_data.get("expires_in", 3600)
     resp = make_response(redirect(
-        f"{get_base_url()}/?connected=1#access_token={access_token}&refresh_token={refresh_token}&expires_in={expires_in}"
+        f"{get_base_url()}/?connected=1&access_token={access_token}&refresh_token={refresh_token}"
     ))
     set_token_cookie(resp, token_data)
     return resp

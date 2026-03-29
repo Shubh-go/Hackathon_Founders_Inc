@@ -291,26 +291,38 @@ export default function App() {
   }, [currentTrack, effectiveData, liveResult]);
 
   const loadSession = useCallback(async () => {
-    // Check if token was passed via URL hash from OAuth callback
+    // Check URL hash, query params, AND cookie for token from OAuth callback
+    let token = localStorage.getItem("spotify_access_token");
+
+    // Try hash: /?connected=1#access_token=...
     const hash = window.location.hash;
-    if (hash && hash.includes("access_token=")) {
+    if (hash && hash.includes("access_token")) {
       const params = new URLSearchParams(hash.substring(1));
-      const token = params.get("access_token");
-      const refresh = params.get("refresh_token");
-      if (token) {
-        localStorage.setItem("spotify_access_token", token);
-        if (refresh) localStorage.setItem("spotify_refresh_token", refresh);
-        // Clean URL
-        window.history.replaceState(null, "", window.location.pathname + window.location.search);
+      const t = params.get("access_token");
+      if (t) {
+        token = t;
+        localStorage.setItem("spotify_access_token", t);
+        const r = params.get("refresh_token");
+        if (r) localStorage.setItem("spotify_refresh_token", r);
+        window.history.replaceState(null, "", "/");
       }
     }
 
-    const storedToken = localStorage.getItem("spotify_access_token");
-    if (storedToken) {
-      // Verify token works by calling Spotify /me directly
+    // Try query param fallback: /?access_token=...
+    const urlParams = new URLSearchParams(window.location.search);
+    const qt = urlParams.get("access_token");
+    if (qt) {
+      token = qt;
+      localStorage.setItem("spotify_access_token", qt);
+      const qr = urlParams.get("refresh_token");
+      if (qr) localStorage.setItem("spotify_refresh_token", qr);
+      window.history.replaceState(null, "", "/");
+    }
+
+    if (token) {
       try {
         const meResp = await fetch("https://api.spotify.com/v1/me", {
-          headers: { Authorization: `Bearer ${storedToken}` },
+          headers: { Authorization: `Bearer ${token}` },
         });
         if (meResp.ok) {
           const me = await meResp.json();
@@ -321,7 +333,6 @@ export default function App() {
           });
           return;
         }
-        // Token expired — clear it
         localStorage.removeItem("spotify_access_token");
       } catch (_) {}
     }
