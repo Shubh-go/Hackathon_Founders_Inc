@@ -30,6 +30,11 @@ const STATION_LAYOUT = {
 // ── Pixel art sprite definitions (1=body, 2=accent, 3=eye, 4=highlight) ──
 const PX = 3;
 
+// ── Walk animation (from js-character-movement pattern) ──
+const WALK_CYCLE = [0, 1, 0, 2]; // idle, step-left, idle, step-right
+const WALK_FRAME_LIMIT = 8; // frames per walk animation step (~7.5 steps/sec at 60fps)
+const MOVE_SPEED = 1.2; // pixels per frame (constant velocity)
+
 const SPRITES = {
   // TEMPO — Joy-inspired: big round head, upward hair spikes, radiant
   time: {
@@ -316,8 +321,9 @@ export default function AgentCanvas({ data, skipEvent, debateActive }) {
     let w, h;
     let envBuffer = null;
 
-    // ── Draw a pixel sprite ──
-    function drawSprite(sprite, cx, cy, scale, color, accent, glow, dimmed) {
+    // ── Draw a pixel sprite with walk animation ──
+    // walkFrame: 0=idle, 1=left-step, 2=right-step
+    function drawSprite(sprite, cx, cy, scale, color, accent, glow, dimmed, walkFrame, facingLeft) {
       const rows = sprite.length, cols = sprite[0].length;
       const sx = cx - (cols * scale) / 2, sy = cy - (rows * scale) / 2;
       const [cr, cg, cb] = color;
@@ -331,6 +337,8 @@ export default function AgentCanvas({ data, skipEvent, debateActive }) {
       }
       const alpha = dimmed ? 80 : 255;
       p.noStroke();
+      // Leg rows are the bottom 3 rows
+      const legStart = rows - 3;
       for (let r = 0; r < rows; r++) {
         for (let c = 0; c < cols; c++) {
           const v = sprite[r][c];
@@ -339,7 +347,21 @@ export default function AgentCanvas({ data, skipEvent, debateActive }) {
           else if (v === 2) p.fill(ar, ag, ab, alpha);
           else if (v === 3) p.fill(255, 255, 255, alpha);
           else if (v === 4) p.fill(255, 255, 220, Math.min(255, alpha + 40));
-          p.rect(sx + c * scale, sy + r * scale, scale, scale);
+          // Apply walk offset to leg rows
+          let px = sx + c * scale;
+          const py = sy + r * scale;
+          if (r >= legStart && walkFrame !== 0) {
+            const legOffset = walkFrame === 1 ? -scale : scale;
+            // Alternate legs: left columns shift one way, right shift other
+            const mid = cols / 2;
+            if (c < mid) px += legOffset;
+            else px -= legOffset;
+          }
+          // Mirror if facing left
+          if (facingLeft) {
+            px = cx + (cx - px) - scale;
+          }
+          p.rect(px, py, scale, scale);
         }
       }
     }
@@ -377,26 +399,155 @@ export default function AgentCanvas({ data, skipEvent, debateActive }) {
       g.line(0, wallH, W, wallH);
     }
 
-    // ── Colored zone platform under each agent's station ──
-    function drawAgentZone(g, x, y, agentKey) {
-      const [zr, zg, zb] = AGENTS_META[agentKey].zone;
+    // ── Circular themed world bubble for each agent ──
+    function drawAgentBubble(g, x, y, agentKey, fc) {
       const [cr, cg, cb] = AGENTS_META[agentKey].color;
-      const zw = 70, zh = 50;
-      // Colored floor pad
-      for (let dy = 0; dy < zh; dy += 2) {
-        const fade = 1 - (dy / zh) * 0.6;
-        g.noStroke();
-        g.fill(zr * fade, zg * fade, zb * fade, 180);
-        g.rect(x - zw / 2 + dy * 0.15, y + 10 + dy, zw - dy * 0.3, 2);
+      const [zr, zg, zb] = AGENTS_META[agentKey].zone;
+      const R = 42; // bubble radius
+
+      // Outer glow ring
+      for (let i = 4; i > 0; i--) {
+        g.noFill(); g.stroke(cr, cg, cb, 8 * (5 - i));
+        g.strokeWeight(1); g.circle(x, y, R * 2 + i * 6);
       }
-      // Colored rim light
-      g.stroke(cr, cg, cb, 30);
-      g.strokeWeight(1);
-      g.noFill();
-      g.rect(x - zw / 2, y + 10, zw, zh, 3);
-      // Tiny colored accent line on top
-      g.stroke(cr, cg, cb, 50);
-      g.line(x - 20, y + 10, x + 20, y + 10);
+
+      // Dark circle background
+      g.noStroke();
+      g.fill(zr * 0.4, zg * 0.4, zb * 0.4, 220);
+      g.circle(x, y, R * 2);
+
+      // Inner darker circle
+      g.fill(zr * 0.2, zg * 0.2, zb * 0.2, 180);
+      g.circle(x, y, R * 1.7);
+
+      // Themed scene inside bubble (simple pixel art elements)
+      g.noStroke();
+      switch (agentKey) {
+        case "time": // Clockwork: gears, clock hands
+          // Clock face
+          g.fill(cr, cg, cb, 40); g.circle(x, y - 4, 30);
+          g.fill(cr, cg, cb, 25); g.circle(x, y - 4, 22);
+          // Hour marks
+          for (let a = 0; a < 12; a++) {
+            const ang = (a / 12) * Math.PI * 2 - Math.PI / 2;
+            g.fill(cr, cg, cb, 80);
+            g.rect(x + Math.cos(ang) * 12 - 1, y - 4 + Math.sin(ang) * 12 - 1, 2, 2);
+          }
+          // Hands
+          g.stroke(cr, cg, cb, 100); g.strokeWeight(1);
+          g.line(x, y - 4, x + Math.cos(fc * 0.01 - Math.PI / 2) * 10, y - 4 + Math.sin(fc * 0.01 - Math.PI / 2) * 10);
+          g.line(x, y - 4, x + Math.cos(fc * 0.06 - Math.PI / 2) * 7, y - 4 + Math.sin(fc * 0.06 - Math.PI / 2) * 7);
+          // Gears bottom
+          g.noStroke(); g.fill(cr, cg, cb, 30);
+          g.rect(x - 14, y + 14, 8, 8); g.rect(x + 6, y + 16, 6, 6);
+          break;
+
+        case "weather": // Rain, clouds, mushrooms
+          // Clouds
+          g.fill(cr, cg, cb, 35);
+          g.rect(x - 16, y - 18, 14, 6); g.rect(x - 12, y - 22, 8, 4);
+          g.rect(x + 4, y - 16, 12, 5); g.rect(x + 6, y - 20, 6, 4);
+          // Rain drops
+          g.fill(cr, cg, cb, 50);
+          for (let i = 0; i < 6; i++) {
+            const ry = ((fc * 0.8 + i * 11) % 28) - 10;
+            g.rect(x - 14 + i * 6, y + ry, 1, 3);
+          }
+          // Ground mushrooms
+          g.fill(cr, cg, cb, 40);
+          g.rect(x - 10, y + 18, 6, 3); g.rect(x - 8, y + 15, 2, 3);
+          g.rect(x + 6, y + 16, 5, 3); g.rect(x + 8, y + 13, 2, 3);
+          break;
+
+        case "location": // Forest, trees, compass
+          // Trees
+          g.fill(cr, cg, cb, 45);
+          g.rect(x - 12, y - 8, 8, 12); g.rect(x - 14, y - 12, 12, 6);
+          g.rect(x + 6, y - 6, 7, 10); g.rect(x + 4, y - 10, 11, 5);
+          // Tree trunks
+          g.fill(cr, cg, cb, 25);
+          g.rect(x - 9, y + 4, 2, 6); g.rect(x + 8, y + 4, 2, 5);
+          // Compass at bottom
+          g.fill(cr, cg, cb, 50); g.rect(x - 4, y + 16, 8, 8);
+          g.fill(255, 60, 60, 60); g.rect(x - 1, y + 18, 2, 2);
+          // Path
+          g.fill(cr, cg, cb, 20);
+          g.rect(x - 2, y + 10, 4, 6);
+          break;
+
+        case "motion": // Forge, fire, anvil
+          // Lava/fire at bottom
+          g.fill(cr, cg, cb, 50);
+          for (let i = 0; i < 5; i++) {
+            const fh = 4 + Math.sin(fc * 0.1 + i * 1.5) * 3;
+            g.rect(x - 16 + i * 7, y + 20 - fh, 5, fh);
+          }
+          // Anvil
+          g.fill(cr, cg, cb, 35); g.rect(x - 8, y + 4, 16, 6);
+          g.fill(cr, cg, cb, 25); g.rect(x - 5, y - 2, 10, 6);
+          // Sparks
+          g.fill(cr, cg, cb, 60);
+          g.rect(x - 3 + Math.sin(fc * 0.15) * 4, y - 8 + Math.cos(fc * 0.12) * 3, 2, 2);
+          g.rect(x + 5 + Math.cos(fc * 0.13) * 3, y - 10 + Math.sin(fc * 0.1) * 2, 2, 2);
+          break;
+
+        case "calendar": // Crystals, organized gems
+          // Crystal formations
+          g.fill(cr, cg, cb, 40);
+          g.rect(x - 14, y + 4, 4, 16); g.rect(x - 12, y, 3, 10);
+          g.rect(x - 4, y - 6, 5, 20); g.rect(x, y - 2, 4, 16);
+          g.rect(x + 8, y + 2, 4, 14); g.rect(x + 6, y + 6, 3, 8);
+          // Crystal tips (brighter)
+          g.fill(cr, cg, cb, 65);
+          g.rect(x - 13, y + 2, 2, 3); g.rect(x - 3, y - 8, 3, 3);
+          g.rect(x + 1, y - 4, 2, 3); g.rect(x + 9, y, 2, 3);
+          // Ground
+          g.fill(cr, cg, cb, 15); g.rect(x - 18, y + 20, 36, 4);
+          break;
+
+        case "day": // Drums, rhythm, musical
+          // Drum kit
+          g.fill(cr, cg, cb, 40);
+          g.rect(x - 12, y + 4, 10, 12); // bass drum
+          g.rect(x + 4, y + 6, 8, 10); // snare
+          g.fill(cr, cg, cb, 55);
+          g.rect(x - 10, y + 2, 6, 2); // cymbal
+          g.rect(x + 5, y + 4, 6, 2); // hi-hat
+          // Sticks
+          g.stroke(cr, cg, cb, 40); g.strokeWeight(1);
+          g.line(x - 4, y - 6, x - 8, y + 4);
+          g.line(x + 2, y - 4, x + 8, y + 6);
+          g.noStroke();
+          // Sound waves
+          g.fill(cr, cg, cb, 20);
+          g.rect(x - 2, y - 14, 4, 2); g.rect(x - 4, y - 18, 8, 2);
+          break;
+
+        case "emotion": // Galaxy, swirl, nebula
+          // Nebula swirl
+          for (let i = 0; i < 8; i++) {
+            const ang = fc * 0.008 + i * 0.8;
+            const dist = 6 + i * 3;
+            const sx2 = x + Math.cos(ang) * dist;
+            const sy2 = y + Math.sin(ang) * dist;
+            g.fill(cr, cg, cb, 30 - i * 2);
+            g.rect(sx2 - 2, sy2 - 2, 4, 4);
+          }
+          // Stars
+          g.fill(255, 255, 255, 40);
+          g.rect(x - 10, y - 12, 1, 1); g.rect(x + 14, y - 8, 1, 1);
+          g.rect(x - 16, y + 6, 1, 1); g.rect(x + 8, y + 14, 1, 1);
+          g.rect(x + 2, y - 16, 1, 1); g.rect(x - 8, y + 10, 1, 1);
+          // Core
+          g.fill(cr, cg, cb, 45); g.circle(x, y, 8);
+          g.fill(255, 255, 255, 25); g.circle(x, y, 4);
+          break;
+      }
+
+      // Rim highlight
+      g.noFill(); g.stroke(cr, cg, cb, 35); g.strokeWeight(1.5);
+      g.circle(x, y, R * 2);
+      g.noStroke();
     }
 
     function drawMonitor(g, x, y, mw, mh) {
@@ -580,12 +731,6 @@ export default function AgentCanvas({ data, skipEvent, debateActive }) {
       }
       drawFloor(envBuffer, w, h);
       drawWall(envBuffer, w, h);
-      // Colored agent zones
-      AGENT_KEYS.forEach((key) => {
-        if (key === "dj") return;
-        const layout = STATION_LAYOUT[key];
-        drawAgentZone(envBuffer, w * layout.hx, h * layout.hy, key);
-      });
       // Monitors
       const monTypes = ["wave","bars","spectrum","bars","wave"];
       const wallH = h * 0.16, monW = 55, monH = 30, monSpacing = w / 6;
@@ -622,6 +767,11 @@ export default function AgentCanvas({ data, skipEvent, debateActive }) {
         // Signal state for one-at-a-time interaction
         this.signaling = false;
         this.signalProgress = 0;
+        // Walk animation (js-character-movement pattern)
+        this.walkFrameCounter = 0;
+        this.walkCycleIdx = 0;
+        this.isMoving = false;
+        this.facingLeft = false;
       }
 
       setHomePosition(W, H) {
@@ -661,10 +811,10 @@ export default function AgentCanvas({ data, skipEvent, debateActive }) {
           this.wanderTimer--;
           if (this.wanderTimer <= 0) {
             const angle = Math.random() * Math.PI * 2;
-            const dist = Math.random() * this.wanderRadius;
+            const dist = 8 + Math.random() * this.wanderRadius;
             this.wanderX = this.homeX + Math.cos(angle) * dist;
             this.wanderY = this.homeY + Math.sin(angle) * dist;
-            this.wanderTimer = 80 + Math.floor(Math.random() * 160);
+            this.wanderTimer = 90 + Math.floor(Math.random() * 180);
           }
         }
 
@@ -676,7 +826,6 @@ export default function AgentCanvas({ data, skipEvent, debateActive }) {
         // Target
         let tx, ty;
         if (this.scatter.active) {
-          // handled below
           tx = this.x; ty = this.y;
         } else if (!this.atStation) {
           tx = this.stageX; ty = this.stageY;
@@ -690,11 +839,41 @@ export default function AgentCanvas({ data, skipEvent, debateActive }) {
           this.scatter.vx *= 0.93; this.scatter.vy *= 0.93;
           this.scatter.timer--;
           if (this.scatter.timer <= 0) this.scatter.active = false;
+          this.isMoving = true;
         } else {
-          const bobY = Math.sin(this.bobPhase) * 2.5;
-          const bobX = Math.cos(this.bobPhase * 0.6) * 1.2;
-          this.x += (this.targetX + bobX - this.x) * 0.035;
-          this.y += (this.targetY + bobY - this.y) * 0.035;
+          // Constant velocity movement (js-character-movement pattern)
+          const dx = this.targetX - this.x;
+          const dy = this.targetY - this.y;
+          const dist = Math.sqrt(dx * dx + dy * dy);
+
+          if (dist > 2) {
+            // Normalize and apply constant speed
+            const nx = dx / dist;
+            const ny = dy / dist;
+            this.x += nx * MOVE_SPEED;
+            this.y += ny * MOVE_SPEED;
+            this.isMoving = true;
+            // Update facing direction
+            if (Math.abs(dx) > 1) this.facingLeft = dx < 0;
+          } else {
+            // Arrived — idle bob
+            this.x += Math.cos(this.bobPhase * 0.6) * 0.15;
+            this.y += Math.sin(this.bobPhase) * 0.3;
+            this.isMoving = false;
+          }
+        }
+
+        // Walk animation cycle (CYCLE_LOOP pattern from js-character-movement)
+        if (this.isMoving) {
+          this.walkFrameCounter++;
+          if (this.walkFrameCounter >= WALK_FRAME_LIMIT) {
+            this.walkFrameCounter = 0;
+            this.walkCycleIdx = (this.walkCycleIdx + 1) % WALK_CYCLE.length;
+          }
+        } else {
+          // Reset to idle frame
+          this.walkCycleIdx = 0;
+          this.walkFrameCounter = 0;
         }
 
         this.scale += (this.targetScale - this.scale) * 0.06;
@@ -717,18 +896,60 @@ export default function AgentCanvas({ data, skipEvent, debateActive }) {
         // Shadow
         p.noStroke(); p.fill(0, 0, 0, 18);
         p.ellipse(this.x, this.y + 18 + s * 2, 20, 5);
-        drawSprite(spriteData, this.x, this.y, s, this.meta.color, this.meta.accent, this.glowIntensity + this.pulse, this.isLoser);
-        // Label
+        const walkFrame = WALK_CYCLE[this.walkCycleIdx];
+        drawSprite(spriteData, this.x, this.y, s, this.meta.color, this.meta.accent, this.glowIntensity + this.pulse, this.isLoser, walkFrame, this.facingLeft);
+        // Name label
         const [cr, cg, cb] = this.meta.color;
         p.fill(cr, cg, cb, this.isLoser ? 70 : 180);
         p.noStroke(); p.textAlign(p.CENTER, p.CENTER); p.textSize(8); p.textFont("monospace");
         p.text(this.meta.name, this.x, this.y + 24 + this.scale * 2);
+
+        // Signal value display (shows what each agent is reading)
+        const d = dataRef.current;
+        const ctx = d.context || {};
+        const signal = ctx[this.key];
+        if (signal && this.key !== "emotion" && this.key !== "dj") {
+          // Signal bubble above agent
+          const sigText = signal.value;
+          const sigY = this.y - 24 - this.scale * 2;
+          // Background pill
+          const tw = Math.max(sigText.length * 4.5 + 8, 30);
+          p.fill(0, 0, 0, 120);
+          p.rect(this.x - tw / 2, sigY - 7, tw, 14, 3);
+          p.fill(cr, cg, cb, 40);
+          p.rect(this.x - tw / 2, sigY - 7, tw, 14, 3);
+          // Signal text
+          p.fill(255, 255, 255, 200);
+          p.textSize(7);
+          p.text(sigText, this.x, sigY);
+        } else if (this.key === "emotion") {
+          const mood = d.emotion?.primary_mood;
+          if (mood) {
+            const sigY = this.y - 24 - this.scale * 2;
+            const tw = Math.max(mood.length * 4.5 + 8, 30);
+            p.fill(0, 0, 0, 120); p.rect(this.x - tw / 2, sigY - 7, tw, 14, 3);
+            p.fill(cr, cg, cb, 40); p.rect(this.x - tw / 2, sigY - 7, tw, 14, 3);
+            p.fill(255, 255, 255, 200); p.textSize(7);
+            p.text(mood, this.x, sigY);
+          }
+        } else if (this.key === "dj") {
+          const phase = d.trajectory?.current_phase?.replace(/_/g, " ");
+          if (phase) {
+            const sigY = this.y - 24 - this.scale * 2;
+            const tw = Math.max(phase.length * 4 + 8, 30);
+            p.fill(0, 0, 0, 120); p.rect(this.x - tw / 2, sigY - 7, tw, 14, 3);
+            p.fill(cr, cg, cb, 40); p.rect(this.x - tw / 2, sigY - 7, tw, 14, 3);
+            p.fill(255, 255, 255, 200); p.textSize(6);
+            p.text(phase, this.x, sigY);
+          }
+        }
+
         // Weight bar
         const barW = 24, barH = 2, barX = this.x - barW / 2, barY = this.y + 30 + this.scale * 2;
         p.fill(255, 255, 255, 8); p.rect(barX, barY, barW, barH, 1);
         p.fill(cr, cg, cb, this.isLoser ? 30 : 110); p.rect(barX, barY, barW * this.weight * 3.3, barH, 1);
         // Winner star
-        if (this.isWinner && debateRef.current) { p.fill(255, 215, 0, 200); p.textSize(11); p.text("\u2B50", this.x, this.y - 22 - this.scale * 2); }
+        if (this.isWinner && debateRef.current) { p.fill(255, 215, 0, 200); p.textSize(11); p.text("\u2B50", this.x, this.y - 22 - this.scale * 4); }
         // Fire ring
         if (isFiring) {
           const t = this.fireTimer / 50;
@@ -798,11 +1019,13 @@ export default function AgentCanvas({ data, skipEvent, debateActive }) {
         p.rect(w * 0.15 + i * 8, ledY, 3, 3);
       }
 
-      // ── Agent stations/desks ──
+      // ── Agent world bubbles + stations ──
       AGENT_KEYS.forEach((key) => {
         if (key === "dj") return;
         const layout = STATION_LAYOUT[key];
-        drawStation(w * layout.hx, h * layout.hy, key, fc);
+        const bx = w * layout.hx, by = h * layout.hy;
+        drawAgentBubble(p, bx, by - 8, key, fc);
+        drawStation(bx, by, key, fc);
       });
 
       // ── Handle skip ──
