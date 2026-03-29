@@ -36,13 +36,13 @@ export const CONTEXTS = {
     agent_weights: { time: 0.25, weather: 0.30, location: 0.15, motion: 0.10, calendar: 0.10, day: 0.10 },
     session_memory: { pattern: "last Saturday 11pm skipped all upbeat, leaned acoustic" },
     queue: [
-      { title: "Skinny Love",        artist: "Bon Iver",          reasoning: "Anchors session in acoustic indie mood. Low energy opener matching rainy night context.",     source: "library",   arc_role: "opener",           status: "playing",  albumArt: "https://i.scdn.co/image/ab67616d00001e02a2fde2bbc9e9a0709c68f804" },
-      { title: "Scott Street",       artist: "Phoebe Bridgers",   reasoning: "Natural transition, similar emotional register. Keeps reflective lane without dropping energy too fast.", source: "library",   arc_role: "sustain",          status: "upcoming", albumArt: "https://i.scdn.co/image/ab67616d00001e024b3e67e0f1ae0d1351a673ef" },
-      { title: "Pink Moon",          artist: "Nick Drake",         reasoning: "Discovery pick — sonically adjacent to Bon Iver's acoustic intimacy. Introduces a new voice in familiar territory.", source: "discovery", arc_role: "discovery_moment",  status: "upcoming", albumArt: "https://i.scdn.co/image/ab67616d00001e0283e260553ab2ddd469890e35" },
-      { title: "Motion Sickness",    artist: "Phoebe Bridgers",   reasoning: "Return to known artist after discovery moment. Slightly more energy to sustain engagement.", source: "library",   arc_role: "sustain",          status: "upcoming", albumArt: "https://i.scdn.co/image/ab67616d00001e024b3e67e0f1ae0d1351a673ef" },
-      { title: "Holocene",           artist: "Bon Iver",          reasoning: "Emotional peak of the set. Grand enough to feel like a climax, still introspective.", source: "library",   arc_role: "sustain",          status: "upcoming", albumArt: "https://i.scdn.co/image/ab67616d00001e02a2fde2bbc9e9a0709c68f804" },
-      { title: "abysskiss",          artist: "Adrianne Lenker",   reasoning: "Second discovery — ultra-quiet folk, perfect wind-down. Adjacent to user's taste DNA.", source: "discovery", arc_role: "cool_down",        status: "upcoming", albumArt: "https://i.scdn.co/image/ab67616d00001e0256da8e32e32eb6e68c7b tried" },
-      { title: "re: stacks",         artist: "Bon Iver",          reasoning: "Session closer. Quietest track in Bon Iver's catalog. Energy → near-zero. Perfect landing.", source: "library",   arc_role: "closer",           status: "upcoming", albumArt: "https://i.scdn.co/image/ab67616d00001e02a2fde2bbc9e9a0709c68f804" },
+      { title: "Skinny Love",        artist: "Bon Iver",          reasoning: "Anchors session in acoustic indie mood. Low energy opener matching rainy night context.",     source: "library",   arc_role: "opener",           status: "playing",  bpm: 138, key: "Dm", energy: 0.28, transition_score: null },
+      { title: "Scott Street",       artist: "Phoebe Bridgers",   reasoning: "Natural transition, similar emotional register. Keeps reflective lane without dropping energy too fast.", source: "library",   arc_role: "sustain",          status: "upcoming", bpm: 132, key: "Am", energy: 0.25, transition_score: 92 },
+      { title: "Pink Moon",          artist: "Nick Drake",         reasoning: "Discovery pick — sonically adjacent to Bon Iver's acoustic intimacy. Introduces a new voice in familiar territory.", source: "discovery", arc_role: "discovery_moment",  status: "upcoming", bpm: 118, key: "Dm", energy: 0.20, transition_score: 85 },
+      { title: "Motion Sickness",    artist: "Phoebe Bridgers",   reasoning: "Return to known artist after discovery moment. Slightly more energy to sustain engagement.", source: "library",   arc_role: "sustain",          status: "upcoming", bpm: 126, key: "Em", energy: 0.32, transition_score: 78 },
+      { title: "Holocene",           artist: "Bon Iver",          reasoning: "Emotional peak of the set. Grand enough to feel like a climax, still introspective.", source: "library",   arc_role: "sustain",          status: "upcoming", bpm: 120, key: "Dm", energy: 0.30, transition_score: 88 },
+      { title: "abysskiss",          artist: "Adrianne Lenker",   reasoning: "Second discovery — ultra-quiet folk, perfect wind-down. Adjacent to user's taste DNA.", source: "discovery", arc_role: "cool_down",        status: "upcoming", bpm: 96, key: "Am", energy: 0.15, transition_score: 81 },
+      { title: "re: stacks",         artist: "Bon Iver",          reasoning: "Session closer. Quietest track in Bon Iver's catalog. Energy → near-zero. Perfect landing.", source: "library",   arc_role: "closer",           status: "upcoming", bpm: 84, key: "Dm", energy: 0.08, transition_score: 94 },
     ],
     debate: {
       winner: "weather",
@@ -205,4 +205,36 @@ export const AGENT_COLORS = {
   day:      "#3CD2C8",
   emotion:  "#B478FF",
   dj:       "#1DB954",
+};
+
+// ── Collaborative context: second user profile ──
+export const COLLAB_USER = {
+  name: "Alex",
+  taste_dna: {
+    top_genres: ["alt rock", "electronic", "shoegaze"],
+    top_artists: ["Radiohead", "Tame Impala", "Beach House"],
+  },
+  emotion: {
+    primary_mood: "energized",
+    energy_level: 0.55,
+  },
+  context: {
+    location: { value: "Fort Mason" },
+    time: { value: "11:14pm" },
+  },
+};
+
+export const COLLAB_OVERLAP = {
+  shared_genres: ["alt rock"],
+  shared_artists: ["Radiohead"],
+  shared_mood_zone: "moderate introspective",
+  merged_energy_target: 0.38,
+  merged_queue: [
+    { title: "Skinny Love",               artist: "Bon Iver",        tag: "user1", reasoning: "Anchors Lamitr's acoustic mood" },
+    { title: "Everything In Its Right Place", artist: "Radiohead",   tag: "both",  reasoning: "Shared artist — ambient energy bridges both profiles" },
+    { title: "Space Song",                 artist: "Beach House",    tag: "user2", reasoning: "Alex's dream pop — matches shared introspective zone" },
+    { title: "Scott Street",               artist: "Phoebe Bridgers", tag: "user1", reasoning: "Lamitr's reflective lane" },
+    { title: "Let It Happen",              artist: "Tame Impala",    tag: "user2", reasoning: "Alex's psych-rock — moderate energy compromise" },
+    { title: "Holocene",                   artist: "Bon Iver",       tag: "both",  reasoning: "Both users' taste DNA converges here" },
+  ],
 };

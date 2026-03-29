@@ -73,26 +73,38 @@ export default function QueuePanel({ data, onSkip }) {
       <div style={styles.queueList}>
         <AnimatePresence mode="popLayout">
           {upcoming.map((track, i) => (
-            <motion.div
-              key={track.title + track.artist}
-              layout
-              initial={{ opacity: 0, x: 40, scale: 0.95 }}
-              animate={{ opacity: 1, x: 0, scale: 1 }}
-              exit={{ opacity: 0, x: -80, scale: 0.8, filter: "blur(4px)" }}
-              transition={{ duration: 0.4, delay: i * 0.05 }}
-              style={styles.queueItem}
-            >
-              <div style={styles.queueIdx}>{i + 1}</div>
-              <div style={styles.queueTrackInfo}>
-                <div style={styles.queueTrackTitle}>{track.title}</div>
-                <div style={styles.queueTrackArtist}>{track.artist}</div>
-                <div style={styles.queueReasoning}>{track.reasoning}</div>
-              </div>
-              <div style={styles.queueBadges}>
-                <Badge source={track.source} />
-                <ArcBadge role={track.arc_role} />
-              </div>
-            </motion.div>
+            <div key={track.title + track.artist + i}>
+              {/* Transition score connector */}
+              {track.transition_score != null && (
+                <div style={styles.transitionRow}>
+                  <div style={styles.transitionLine} />
+                  <TransitionBadge score={track.transition_score} bpm={track.bpm} musicKey={track.key} />
+                  <div style={styles.transitionLine} />
+                </div>
+              )}
+              <motion.div
+                layout
+                initial={{ opacity: 0, x: 40, scale: 0.95 }}
+                animate={{ opacity: 1, x: 0, scale: 1 }}
+                exit={{ opacity: 0, x: -80, scale: 0.8, filter: "blur(4px)" }}
+                transition={{ duration: 0.4, delay: i * 0.05 }}
+                style={styles.queueItem}
+              >
+                <div style={styles.queueIdx}>{i + 1}</div>
+                <div style={styles.queueTrackInfo}>
+                  <div style={styles.queueTrackTitle}>{track.title}</div>
+                  <div style={styles.queueTrackArtist}>{track.artist}</div>
+                  <div style={styles.queueReasoning}>{track.reasoning}</div>
+                </div>
+                <div style={styles.queueBadges}>
+                  <Badge source={track.source} />
+                  <ArcBadge role={track.arc_role} />
+                  {track.bpm && (
+                    <span style={styles.bpmBadge}>{track.bpm} BPM {track.key}</span>
+                  )}
+                </div>
+              </motion.div>
+            </div>
           ))}
         </AnimatePresence>
       </div>
@@ -104,6 +116,25 @@ export default function QueuePanel({ data, onSkip }) {
           <span style={styles.memoryText}>{data.session_memory.pattern}</span>
         </div>
       )}
+    </div>
+  );
+}
+
+function TransitionBadge({ score, bpm, musicKey }) {
+  const color = score >= 85 ? "#1DB954" : score >= 70 ? "#F59E0B" : "#EF4444";
+  const label = score >= 85 ? "SMOOTH" : score >= 70 ? "OK" : "JARRING";
+  return (
+    <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+      <div style={{
+        width: 6, height: 6, borderRadius: "50%",
+        background: color, boxShadow: `0 0 6px ${color}60`,
+      }} />
+      <span style={{
+        fontFamily: "monospace", fontSize: 8, color, fontWeight: 700, letterSpacing: 1,
+      }}>{score}</span>
+      <span style={{
+        fontFamily: "monospace", fontSize: 7, color: "#555", letterSpacing: 0.5,
+      }}>{label}</span>
     </div>
   );
 }
@@ -330,6 +361,23 @@ const styles = {
     gap: 4,
     flexShrink: 0,
     alignItems: "flex-end",
+  },
+  transitionRow: {
+    display: "flex",
+    alignItems: "center",
+    gap: 6,
+    padding: "3px 12px",
+  },
+  transitionLine: {
+    flex: 1,
+    height: 1,
+    background: "#ffffff10",
+  },
+  bpmBadge: {
+    fontSize: 7,
+    fontFamily: "monospace",
+    color: "#555",
+    letterSpacing: 0.5,
   },
   memory: {
     display: "flex",

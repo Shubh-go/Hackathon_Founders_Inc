@@ -321,6 +321,83 @@ body {
   flex-shrink: 0;
 }
 
+/* ===== COLLAB TOGGLE ===== */
+.collab-toggle {
+  padding: 6px 12px;
+  background: transparent;
+  border: 1px solid #50A0FF40;
+  border-radius: 6px;
+  cursor: pointer;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: 2px;
+  color: #50A0FF;
+  transition: all 0.2s;
+}
+.collab-toggle:hover { background: #50A0FF10; }
+.collab-toggle-active {
+  background: #50A0FF15;
+  border-color: #50A0FF;
+  box-shadow: 0 0 10px #50A0FF15;
+}
+
+/* ===== VIBE SAVE BUTTON ===== */
+.vibe-save-btn {
+  padding: 6px 12px;
+  background: transparent;
+  border: 1px solid var(--purple);
+  border-radius: 6px;
+  cursor: pointer;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: 2px;
+  color: var(--purple);
+  transition: all 0.2s;
+}
+.vibe-save-btn:hover {
+  background: #A78BFA15;
+}
+
+/* ===== SAVED VIBES ===== */
+.saved-vibes {
+  display: flex;
+  gap: 4px;
+}
+.vibe-pill-btn {
+  padding: 4px 8px;
+  background: #A78BFA12;
+  border: 1px solid #A78BFA25;
+  border-radius: 12px;
+  cursor: pointer;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 8px;
+  color: var(--purple);
+  transition: all 0.2s;
+}
+.vibe-pill-btn:hover {
+  background: #A78BFA25;
+}
+
+/* ===== VIBE TOAST ===== */
+.vibe-toast {
+  position: fixed;
+  bottom: 24px;
+  left: 50%;
+  transform: translateX(-50%);
+  padding: 10px 20px;
+  background: #A78BFA20;
+  border: 1px solid #A78BFA40;
+  border-radius: 8px;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 11px;
+  color: var(--purple);
+  backdrop-filter: blur(8px);
+  z-index: 300;
+  white-space: nowrap;
+}
+
 /* ===== SCROLLBAR ===== */
 ::-webkit-scrollbar {
   width: 4px;
