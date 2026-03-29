@@ -40,47 +40,45 @@ export default function QueuePanel({
       {/* Now Playing */}
       {playing && (
         <div style={styles.nowPlaying}>
-          <div style={styles.albumArt}>
-            {playing.albumArt ? (
-              <img src={playing.albumArt} alt={playing.title} style={styles.albumImage} />
-            ) : (
+          <div style={styles.npTop}>
+            <div style={styles.albumArt}>
               <div style={styles.albumPlaceholder}>
-                <span style={{ fontSize: 28 }}>{"\u266B"}</span>
+                <span style={{ fontSize: 24, color: "#1DB954" }}>{"\u266B"}</span>
+                <div style={styles.playingIndicator}>
+                  {[1,2,3,4].map(i => (
+                    <motion.div
+                      key={i}
+                      style={styles.bar}
+                      animate={{ height: [3, 10 + Math.random()*6, 3] }}
+                      transition={{ repeat: Infinity, duration: 0.6 + Math.random()*0.4, delay: i*0.1 }}
+                    />
+                  ))}
+                </div>
               </div>
-            )}
-            <div style={styles.playingIndicator}>
-              {[1,2,3,4].map(i => (
-                <motion.div
-                  key={i}
-                  style={styles.bar}
-                  animate={{ height: [4, 12 + Math.random()*8, 4] }}
-                  transition={{ repeat: Infinity, duration: 0.6 + Math.random()*0.4, delay: i*0.1 }}
-                />
-              ))}
             </div>
-          </div>
-          <div style={styles.trackInfo}>
-            <div style={styles.trackTitle}>{playing.title}</div>
-            <div style={styles.trackArtist}>{playing.artist}</div>
-            <div style={styles.trackReasoning}>{playing.reasoning}</div>
-            <div style={styles.badges}>
-              <Badge source={playing.source} />
-              <ArcBadge role={playing.arc_role} />
+            <div style={styles.npTitleBlock}>
+              <div style={styles.trackTitle}>{playing.title}</div>
+              <div style={styles.trackArtist}>{playing.artist}</div>
             </div>
-            {canControlPlayback && (
-              <div style={styles.controls}>
-                <button style={styles.controlBtn} onClick={onPrevious}>{"⏮"}</button>
-                <button style={styles.controlBtnPrimary} onClick={onTogglePlay}>
-                  {isPaused ? "▶" : "❚❚"}
-                </button>
-                <button style={styles.controlBtn} onClick={onNext}>{"⏭"}</button>
-              </div>
-            )}
+            <button style={styles.skipBtn} onClick={onSkip}>
+              <span style={styles.skipIcon}>{"⏭"}</span>
+              <span style={styles.skipLabel}>{canControlPlayback ? "NEXT" : "SKIP"}</span>
+            </button>
           </div>
-          <button style={styles.skipBtn} onClick={onSkip}>
-            <span style={styles.skipIcon}>{"⏭"}</span>
-            <span style={styles.skipLabel}>{canControlPlayback ? "NEXT" : "SKIP"}</span>
-          </button>
+          <div style={styles.trackReasoning}>{playing.reasoning}</div>
+          <div style={styles.badges}>
+            <Badge source={playing.source} />
+            <ArcBadge role={playing.arc_role} />
+          </div>
+          {canControlPlayback && (
+            <div style={styles.controls}>
+              <button style={styles.controlBtn} onClick={onPrevious}>{"⏮"}</button>
+              <button style={styles.controlBtnPrimary} onClick={onTogglePlay}>
+                {isPaused ? "▶" : "❚❚"}
+              </button>
+              <button style={styles.controlBtn} onClick={onNext}>{"⏭"}</button>
+            </div>
+          )}
         </div>
       )}
 
@@ -225,30 +223,41 @@ const styles = {
   },
   nowPlaying: {
     display: "flex",
-    gap: 12,
+    flexDirection: "column",
+    gap: 8,
     padding: "12px 14px",
     background: "linear-gradient(135deg, #1DB95412, #0c0c14)",
     border: "1px solid #1DB95425",
     borderRadius: 12,
-    alignItems: "center",
     boxShadow: "0 0 20px #1DB95408, inset 0 1px 0 #ffffff06",
   },
-  albumArt: { position: "relative", flexShrink: 0 },
+  npTop: {
+    display: "flex",
+    alignItems: "center",
+    gap: 10,
+  },
+  npTitleBlock: {
+    flex: 1,
+    minWidth: 0,
+  },
+  albumArt: { flexShrink: 0 },
   albumImage: {
-    width: 64,
-    height: 64,
+    width: 48,
+    height: 48,
     borderRadius: 8,
     objectFit: "cover",
     border: "1px solid #1DB95420",
   },
   albumPlaceholder: {
-    width: 64, height: 64,
+    width: 48, height: 48,
     borderRadius: 8,
-    background: "linear-gradient(135deg, #1DB95430, #0d0d12)",
-    border: "1px solid #1DB95420",
+    background: "linear-gradient(135deg, #1DB95420, #0d0d12)",
+    border: "1px solid #1DB95418",
     display: "flex",
+    flexDirection: "column",
     alignItems: "center",
     justifyContent: "center",
+    gap: 2,
     color: "#1DB954",
   },
   playingIndicator: {
