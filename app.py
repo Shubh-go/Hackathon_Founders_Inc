@@ -1,13 +1,15 @@
 import base64
+import json
 import os
 import re
 import secrets
 import time
 from urllib.parse import urlencode
 
+import jwt
 import requests
 from dotenv import load_dotenv
-from flask import Flask, jsonify, redirect, render_template_string, request, session
+from flask import Flask, jsonify, make_response, redirect, render_template_string, request, session
 
 
 load_dotenv()
@@ -16,6 +18,46 @@ app = Flask(__name__)
 app.secret_key = os.environ.get("FLASK_SECRET_KEY", "dev-secret-change-me")
 app.config["SESSION_COOKIE_SAMESITE"] = "Lax"
 app.config["SESSION_COOKIE_SECURE"] = os.environ.get("VERCEL") is not None
+
+JWT_SECRET = app.secret_key
+
+
+def set_token_cookie(response, token_data):
+    """Store Spotify token in a JWT cookie (works on serverless)."""
+    payload = {
+        "access_token": token_data["access_token"],
+        "refresh_token": token_data.get("refresh_token", ""),
+        "expires_at": int(time.time()) + int(token_data.get("expires_in", 3600)),
+        "scope": token_data.get("scope", ""),
+    }
+    encoded = jwt.encode(payload, JWT_SECRET, algorithm="HS256")
+    response.set_cookie(
+        "vibe_token",
+        encoded,
+        httponly=True,
+        samesite="Lax",
+        secure=os.environ.get("VERCEL") is not None,
+        max_age=86400,
+    )
+    return response
+
+
+def get_token_from_cookie():
+    """Read Spotify token from JWT cookie."""
+    cookie = request.cookies.get("vibe_token")
+    if not cookie:
+        return None
+    try:
+        payload = jwt.decode(cookie, JWT_SECRET, algorithms=["HS256"])
+        return {
+            "access_token": payload["access_token"],
+            "refresh_token": payload.get("refresh_token", ""),
+            "expires_at": payload.get("expires_at", 0),
+            "scope": payload.get("scope", ""),
+            "token_type": "Bearer",
+        }
+    except (jwt.InvalidTokenError, KeyError):
+        return None
 
 SPOTIFY_CLIENT_ID = os.environ.get("SPOTIFY_CLIENT_ID", "")
 SPOTIFY_CLIENT_SECRET = os.environ.get("SPOTIFY_CLIENT_SECRET", "")
@@ -653,7 +695,7 @@ def store_token_payload(token_payload):
 
 
 def refresh_access_token():
-    token = session.get("spotify_token")
+    token = session.get("spotify_token") or get_token_from_cookie()
     if not token or not token.get("refresh_token"):
         return None
 
@@ -672,11 +714,11 @@ def refresh_access_token():
     response.raise_for_status()
     refreshed = response.json()
     store_token_payload(refreshed)
-    return session.get("spotify_token")
+    return session.get("spotify_token") or get_token_from_cookie()
 
 
 def get_valid_token():
-    token = session.get("spotify_token")
+    token = session.get("spotify_token") or get_token_from_cookie()
     if not token:
         return None
 
@@ -687,7 +729,7 @@ def get_valid_token():
 
 
 def get_token_scopes():
-    token = session.get("spotify_token") or {}
+    token = session.get("spotify_token") or get_token_from_cookie() or {}
     return {scope for scope in token.get("scope", "").split(" ") if scope}
 
 
@@ -1098,9 +1140,12 @@ def callback():
     if not response.ok:
         return jsonify({"error": "token_exchange_failed", "details": response.text}), 400
 
-    store_token_payload(response.json())
+    token_data = response.json()
+    store_token_payload(token_data)
     session.pop("spotify_auth_state", None)
-    return redirect(f"{get_base_url()}/?connected=1")
+    resp = make_response(redirect(f"{get_base_url()}/?connected=1"))
+    set_token_cookie(resp, token_data)
+    return resp
 
 
 @app.get("/api/session")
