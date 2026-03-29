@@ -282,10 +282,17 @@ export default function App() {
     currentTrack?.id && liveResult?.tracks?.some((track) => track.id === currentTrack.id)
   );
   const effectiveData = useMemo(() => applyDirectiveToData(data, directive), [data, directive]);
-  const queueData = useMemo(
-    () => (liveResult ? createLiveQueue(effectiveData, liveResult, currentTrack) : effectiveData),
-    [currentTrack, effectiveData, liveResult]
-  );
+  const queueData = useMemo(() => {
+    if (liveResult) {
+      return createLiveQueue(effectiveData, liveResult, currentTrack);
+    }
+    // Connected but no mix built yet — show context signals with empty queue
+    if (sessionData.authenticated) {
+      return { ...effectiveData, queue: [] };
+    }
+    // Not connected — show full demo data
+    return effectiveData;
+  }, [currentTrack, effectiveData, liveResult, sessionData.authenticated]);
 
   const loadSession = useCallback(async () => {
     try {
@@ -623,7 +630,7 @@ export default function App() {
     }
     // Skip on user's active Spotify device (phone) via Connect API
     try {
-      await fetch("/api/player/next", { method: "POST" });
+      await fetch("/api/player/next", { method: "POST", credentials: "include" });
     } catch (_) {
       // Offline or not authenticated — visual skip still works
     }
@@ -658,11 +665,11 @@ export default function App() {
   }, [canUsePlayback, deviceId, hasActiveMixInPlayer, hasLiveQueue, playLiveResult]);
 
   const handlePreviousTrack = useCallback(async () => {
-    try { await fetch("/api/player/previous", { method: "POST" }); } catch (_) {}
+    try { await fetch("/api/player/previous", { method: "POST", credentials: "include" }); } catch (_) {}
   }, []);
 
   const handleNextTrack = useCallback(async () => {
-    try { await fetch("/api/player/next", { method: "POST" }); } catch (_) {}
+    try { await fetch("/api/player/next", { method: "POST", credentials: "include" }); } catch (_) {}
   }, [canUsePlayback, deviceId, hasActiveMixInPlayer, hasLiveQueue, playLiveResult]);
 
   const handleLogout = useCallback(async () => {

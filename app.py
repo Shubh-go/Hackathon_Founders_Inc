@@ -21,6 +21,14 @@ app.config["SESSION_COOKIE_SECURE"] = os.environ.get("VERCEL") is not None
 
 JWT_SECRET = app.secret_key
 
+# Re-set JWT cookie on every response if token exists in session (keeps cookie fresh)
+@app.after_request
+def sync_token_cookie(response):
+    token = session.get("spotify_token")
+    if token and token.get("access_token"):
+        set_token_cookie(response, token)
+    return response
+
 
 def set_token_cookie(response, token_data):
     """Store Spotify token in a JWT cookie (works on serverless)."""
