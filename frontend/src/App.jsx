@@ -766,7 +766,9 @@ export default function App() {
   }, [canUsePlayback, deviceId, hasActiveMixInPlayer, hasLiveQueue, playLiveResult]);
 
   const handleLogout = useCallback(async () => {
-    await fetch("/logout", { credentials: "include" });
+    localStorage.removeItem("spotify_access_token");
+    localStorage.removeItem("spotify_refresh_token");
+    await fetch("/logout", { credentials: "include" }).catch(() => {});
     setSessionData({ authenticated: false, scopes: [] });
     setLiveResult(null);
     setCurrentTrack(null);
