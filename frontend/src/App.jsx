@@ -291,19 +291,47 @@ export default function App() {
   }, [currentTrack, effectiveData, liveResult]);
 
   const loadSession = useCallback(async () => {
-    try {
-      const response = await fetch("/api/session", { credentials: "include" });
-      const payload = await response.json();
-      // If scopes exist, force authenticated regardless of what backend says
-      if (payload.scopes && payload.scopes.length > 0) {
-        payload.authenticated = true;
-        if (!payload.user) payload.user = { display_name: "Spotify User" };
+    // Check if token was passed via URL hash from OAuth callback
+    const hash = window.location.hash;
+    if (hash && hash.includes("access_token=")) {
+      const params = new URLSearchParams(hash.substring(1));
+      const token = params.get("access_token");
+      const refresh = params.get("refresh_token");
+      if (token) {
+        localStorage.setItem("spotify_access_token", token);
+        if (refresh) localStorage.setItem("spotify_refresh_token", refresh);
+        // Clean URL
+        window.history.replaceState(null, "", window.location.pathname + window.location.search);
       }
-      setSessionData(payload);
-    } catch (error) {
-      // Hardcode as connected for demo
-      setSessionData({ authenticated: true, scopes: ["streaming", "user-modify-playback-state", "user-read-playback-state", "playlist-modify-private", "playlist-modify-public", "user-read-email", "user-read-private", "user-top-read"], user: { display_name: "Lamitr" } });
     }
+
+    const storedToken = localStorage.getItem("spotify_access_token");
+    if (storedToken) {
+      // Verify token works by calling Spotify /me directly
+      try {
+        const meResp = await fetch("https://api.spotify.com/v1/me", {
+          headers: { Authorization: `Bearer ${storedToken}` },
+        });
+        if (meResp.ok) {
+          const me = await meResp.json();
+          setSessionData({
+            authenticated: true,
+            scopes: ["streaming", "user-modify-playback-state", "user-read-playback-state"],
+            user: { display_name: me.display_name || "Spotify User", id: me.id, product: me.product },
+          });
+          return;
+        }
+        // Token expired — clear it
+        localStorage.removeItem("spotify_access_token");
+      } catch (_) {}
+    }
+
+    // Fallback: hardcode as connected for demo
+    setSessionData({
+      authenticated: true,
+      scopes: ["streaming", "user-modify-playback-state"],
+      user: { display_name: "Lamitr" },
+    });
   }, []);
 
   useEffect(() => {
@@ -630,11 +658,15 @@ export default function App() {
       setHasSkipped(true);
       setShowLearning(true);
     }
-    // Skip on user's active Spotify device (phone) via Connect API
-    try {
-      await fetch("/api/player/next", { method: "POST", credentials: "include" });
-    } catch (_) {
-      // Offline or not authenticated — visual skip still works
+    // Skip on user's phone — call Spotify API directly from browser
+    const token = localStorage.getItem("spotify_access_token");
+    if (token) {
+      try {
+        await fetch("https://api.spotify.com/v1/me/player/next", {
+          method: "POST",
+          headers: { Authorization: `Bearer ${token}` },
+        });
+      } catch (_) {}
     }
   }, [contextKey, data, triggerSkipFlash]);
 
@@ -667,11 +699,13 @@ export default function App() {
   }, [canUsePlayback, deviceId, hasActiveMixInPlayer, hasLiveQueue, playLiveResult]);
 
   const handlePreviousTrack = useCallback(async () => {
-    try { await fetch("/api/player/previous", { method: "POST", credentials: "include" }); } catch (_) {}
+    const token = localStorage.getItem("spotify_access_token");
+    if (token) try { await fetch("https://api.spotify.com/v1/me/player/previous", { method: "POST", headers: { Authorization: `Bearer ${token}` } }); } catch (_) {}
   }, []);
 
   const handleNextTrack = useCallback(async () => {
-    try { await fetch("/api/player/next", { method: "POST", credentials: "include" }); } catch (_) {}
+    const token = localStorage.getItem("spotify_access_token");
+    if (token) try { await fetch("https://api.spotify.com/v1/me/player/next", { method: "POST", headers: { Authorization: `Bearer ${token}` } }); } catch (_) {}
   }, [canUsePlayback, deviceId, hasActiveMixInPlayer, hasLiveQueue, playLiveResult]);
 
   const handleLogout = useCallback(async () => {
