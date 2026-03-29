@@ -1,5 +1,15 @@
 import { motion, AnimatePresence } from "framer-motion";
 
+const AGENT_NAMES = {
+  time: "TEMPO", weather: "HAZE", location: "SCOUT",
+  motion: "PULSE", calendar: "SLATE", day: "RHYTHM",
+};
+
+const AGENT_HEX = {
+  time: "#FFC83C", weather: "#50A0FF", location: "#1DB954",
+  motion: "#FF7832", calendar: "#B4BED2", day: "#3CD2C8",
+};
+
 export default function TerminalPanel({ data, visible, onClose }) {
   if (!visible) return null;
 
@@ -37,7 +47,7 @@ export default function TerminalPanel({ data, visible, onClose }) {
         <Section title="CONTEXT AGENTS" ts={ts} model="gpt-4o-mini" latency="120ms">
           {Object.entries(ctx).map(([key, val]) => (
             <div key={key} style={styles.agentRow}>
-              <span style={styles.agentKey}>{key.toUpperCase()}</span>
+              <span style={{...styles.agentKey, color: AGENT_HEX[key] || "#1DB954"}}>{AGENT_NAMES[key] || key.toUpperCase()}</span>
               <span style={styles.agentVal}>{val.value}</span>
               <span style={styles.agentInterp}>{"\u2192"} {val.interpretation}</span>
               <ConfidenceBar value={val.confidence} />
@@ -49,12 +59,12 @@ export default function TerminalPanel({ data, visible, onClose }) {
         <Section title="AGENT WEIGHTS" ts={ts} model="internal" latency="2ms">
           {Object.entries(weights).map(([key, val]) => (
             <div key={key} style={styles.weightRow}>
-              <span style={styles.weightKey}>{key.toUpperCase()}</span>
+              <span style={{...styles.weightKey, color: AGENT_HEX[key] || "#888"}}>{AGENT_NAMES[key] || key.toUpperCase()}</span>
               <div style={styles.weightBarOuter}>
                 <motion.div
                   style={{
                     ...styles.weightBarInner,
-                    background: debate.winner === key ? "#1DB954" : debate.loser === key ? "#EF4444" : "#1DB95480",
+                    background: debate.winner === key ? (AGENT_HEX[key] || "#1DB954") : debate.loser === key ? "#EF4444" : (AGENT_HEX[key] || "#1DB954") + "80",
                   }}
                   animate={{ width: `${val * 100 * 3}%` }}
                   transition={{ type: "spring", damping: 20 }}

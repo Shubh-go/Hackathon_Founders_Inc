@@ -2,6 +2,15 @@ import { motion } from "framer-motion";
 
 const ORDER = ["time", "weather", "location", "motion", "calendar", "day"];
 
+const NAMES = {
+  time: "TEMPO", weather: "HAZE", location: "SCOUT",
+  motion: "PULSE", calendar: "SLATE", day: "RHYTHM",
+};
+const COLORS = {
+  time: "#FFC83C", weather: "#50A0FF", location: "#1DB954",
+  motion: "#FF7832", calendar: "#B4BED2", day: "#3CD2C8",
+};
+
 export default function WeightBars({ data }) {
   const weights = data.agent_weights || {};
   const debate = data.debate || {};
@@ -14,24 +23,27 @@ export default function WeightBars({ data }) {
           const val = weights[key] || 0;
           const isWinner = debate.winner === key;
           const isLoser = debate.loser === key;
-          const color = isWinner ? "#1DB954" : isLoser ? "#EF4444" : "#1DB95480";
+          const baseColor = COLORS[key] || "#1DB954";
+          const color = isLoser ? "#EF4444" : baseColor;
 
           return (
             <div key={key} style={styles.row}>
               <span style={{
                 ...styles.label,
-                color: isWinner ? "#1DB954" : isLoser ? "#EF4444" : "#888",
+                color: isLoser ? "#EF4444" : baseColor,
               }}>
-                {key.toUpperCase()}
+                {NAMES[key]}
               </span>
               <div style={styles.barOuter}>
                 <motion.div
-                  style={{ ...styles.barInner, background: color }}
+                  style={{ ...styles.barInner, background: color, boxShadow: `0 0 8px ${color}40` }}
                   animate={{ width: `${val * 100 * 2.5}%` }}
                   transition={{ type: "spring", damping: 15, stiffness: 100 }}
                 />
               </div>
               <span style={styles.val}>{(val * 100).toFixed(0)}%</span>
+              {isWinner && <span style={styles.winTag}>WIN</span>}
+              {isLoser && <span style={styles.loseTag}>LOSE</span>}
             </div>
           );
         })}
@@ -82,7 +94,6 @@ const styles = {
   barInner: {
     height: "100%",
     borderRadius: 5,
-    boxShadow: "0 0 8px #1DB95440",
   },
   val: {
     color: "#888",
@@ -90,5 +101,25 @@ const styles = {
     fontFamily: "monospace",
     width: 32,
     textAlign: "right",
+  },
+  winTag: {
+    fontSize: 7,
+    fontWeight: 800,
+    color: "#1DB954",
+    background: "#1DB95420",
+    padding: "1px 4px",
+    borderRadius: 3,
+    letterSpacing: 1,
+    fontFamily: "monospace",
+  },
+  loseTag: {
+    fontSize: 7,
+    fontWeight: 800,
+    color: "#EF4444",
+    background: "#EF444420",
+    padding: "1px 4px",
+    borderRadius: 3,
+    letterSpacing: 1,
+    fontFamily: "monospace",
   },
 };

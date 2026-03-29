@@ -175,12 +175,14 @@ export const POST_SKIP_FORT_MASON = {
 };
 
 export const AGENT_LABELS = {
-  time: "Time",
-  weather: "Weather",
-  location: "Location",
-  motion: "Motion",
-  calendar: "Calendar",
-  day: "Day",
+  time: "Tempo",
+  weather: "Haze",
+  location: "Scout",
+  motion: "Pulse",
+  calendar: "Slate",
+  day: "Rhythm",
+  emotion: "Core",
+  dj: "Maestro",
 };
 
 export const AGENT_ICONS = {
@@ -190,15 +192,17 @@ export const AGENT_ICONS = {
   motion: "\ud83c\udfc3",
   calendar: "\ud83d\udcc5",
   day: "\ud83d\udcc6",
+  emotion: "\ud83d\udc9c",
+  dj: "\ud83c\udfb5",
 };
 
 export const AGENT_COLORS = {
-  time:     "#1DB954",
-  weather:  "#1ED760",
-  location: "#17A34A",
-  motion:   "#15803D",
-  calendar: "#4ADE80",
-  day:      "#86EFAC",
-  emotion:  "#A78BFA",
-  dj:       "#F59E0B",
+  time:     "#FFC83C",
+  weather:  "#50A0FF",
+  location: "#1DB954",
+  motion:   "#FF7832",
+  calendar: "#B4BED2",
+  day:      "#3CD2C8",
+  emotion:  "#B478FF",
+  dj:       "#1DB954",
 };
