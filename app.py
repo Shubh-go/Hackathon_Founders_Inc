@@ -17,14 +17,28 @@ app.secret_key = os.environ.get("FLASK_SECRET_KEY", "dev-secret-change-me")
 
 SPOTIFY_CLIENT_ID = os.environ.get("SPOTIFY_CLIENT_ID", "")
 SPOTIFY_CLIENT_SECRET = os.environ.get("SPOTIFY_CLIENT_SECRET", "")
-SPOTIFY_REDIRECT_URI = os.environ.get(
-    "SPOTIFY_REDIRECT_URI", "http://127.0.0.1:3001/callback"
-)
+SPOTIFY_REDIRECT_URI = os.environ.get("SPOTIFY_REDIRECT_URI", "")
 SPOTIFY_SCOPES = os.environ.get(
     "SPOTIFY_SCOPES",
     "user-read-email user-read-private user-top-read user-read-playback-state user-modify-playback-state streaming playlist-modify-private playlist-modify-public",
 )
-FRONTEND_URL = os.environ.get("FRONTEND_URL", "http://127.0.0.1:5173")
+FRONTEND_URL = os.environ.get("FRONTEND_URL", "")
+
+
+def get_base_url():
+    """Auto-detect base URL from request, works on Vercel and local."""
+    if FRONTEND_URL:
+        return FRONTEND_URL.rstrip("/")
+    host = request.headers.get("X-Forwarded-Host") or request.headers.get("Host") or "127.0.0.1:3001"
+    scheme = request.headers.get("X-Forwarded-Proto", "http")
+    return f"{scheme}://{host}"
+
+
+def get_redirect_uri():
+    """Auto-detect redirect URI from request."""
+    if SPOTIFY_REDIRECT_URI:
+        return SPOTIFY_REDIRECT_URI
+    return f"{get_base_url()}/callback"
 
 SPOTIFY_AUTH_URL = "https://accounts.spotify.com/authorize"
 SPOTIFY_TOKEN_URL = "https://accounts.spotify.com/api/token"
@@ -613,8 +627,7 @@ def missing_config():
         missing.append("SPOTIFY_CLIENT_ID")
     if not SPOTIFY_CLIENT_SECRET:
         missing.append("SPOTIFY_CLIENT_SECRET")
-    if not SPOTIFY_REDIRECT_URI:
-        missing.append("SPOTIFY_REDIRECT_URI")
+    # SPOTIFY_REDIRECT_URI auto-detected from request if not set
     return missing
 
 
@@ -1026,7 +1039,7 @@ def health():
             "ok": True,
             "configured": missing_config() == [],
             "missing": missing_config(),
-            "redirect_uri": SPOTIFY_REDIRECT_URI,
+            "redirect_uri": get_redirect_uri(),
         }
     )
 
@@ -1043,7 +1056,7 @@ def login():
     params = {
         "client_id": SPOTIFY_CLIENT_ID,
         "response_type": "code",
-        "redirect_uri": SPOTIFY_REDIRECT_URI,
+        "redirect_uri": get_redirect_uri(),
         "scope": SPOTIFY_SCOPES,
         "state": state,
         "show_dialog": "true",
@@ -1074,7 +1087,7 @@ def callback():
         data={
             "grant_type": "authorization_code",
             "code": code,
-            "redirect_uri": SPOTIFY_REDIRECT_URI,
+            "redirect_uri": get_redirect_uri(),
         },
         timeout=20,
     )
@@ -1084,7 +1097,7 @@ def callback():
 
     store_token_payload(response.json())
     session.pop("spotify_auth_state", None)
-    return redirect(f"{FRONTEND_URL.rstrip('/')}/?connected=1")
+    return redirect(f"{get_base_url()}/?connected=1")
 
 
 @app.get("/api/session")
@@ -1104,7 +1117,7 @@ def get_session_status():
         {
             "authenticated": True,
             "scopes": sorted(get_token_scopes()),
-            "frontend_url": FRONTEND_URL,
+            "frontend_url": get_base_url(),
             "user": {
                 "display_name": data.get("display_name"),
                 "id": data.get("id"),
