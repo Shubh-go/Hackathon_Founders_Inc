@@ -1,4 +1,3 @@
-import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 
 const SOURCE_BADGE = {
@@ -14,7 +13,15 @@ const ARC_ROLE_COLORS = {
   closer:           "#EF4444",
 };
 
-export default function QueuePanel({ data, onSkip }) {
+export default function QueuePanel({
+  data,
+  onSkip,
+  canControlPlayback = false,
+  isPaused = true,
+  onTogglePlay,
+  onPrevious,
+  onNext,
+}) {
   const queue = data.queue || [];
   const playing = queue.find((t) => t.status === "playing");
   const upcoming = queue.filter((t) => t.status === "upcoming");
@@ -34,9 +41,13 @@ export default function QueuePanel({ data, onSkip }) {
       {playing && (
         <div style={styles.nowPlaying}>
           <div style={styles.albumArt}>
-            <div style={styles.albumPlaceholder}>
-              <span style={{ fontSize: 28 }}>{"\u266B"}</span>
-            </div>
+            {playing.albumArt ? (
+              <img src={playing.albumArt} alt={playing.title} style={styles.albumImage} />
+            ) : (
+              <div style={styles.albumPlaceholder}>
+                <span style={{ fontSize: 28 }}>{"\u266B"}</span>
+              </div>
+            )}
             <div style={styles.playingIndicator}>
               {[1,2,3,4].map(i => (
                 <motion.div
@@ -56,10 +67,19 @@ export default function QueuePanel({ data, onSkip }) {
               <Badge source={playing.source} />
               <ArcBadge role={playing.arc_role} />
             </div>
+            {canControlPlayback && (
+              <div style={styles.controls}>
+                <button style={styles.controlBtn} onClick={onPrevious}>{"⏮"}</button>
+                <button style={styles.controlBtnPrimary} onClick={onTogglePlay}>
+                  {isPaused ? "▶" : "❚❚"}
+                </button>
+                <button style={styles.controlBtn} onClick={onNext}>{"⏭"}</button>
+              </div>
+            )}
           </div>
           <button style={styles.skipBtn} onClick={onSkip}>
             <span style={styles.skipIcon}>{"⏭"}</span>
-            <span style={styles.skipLabel}>SKIP</span>
+            <span style={styles.skipLabel}>{canControlPlayback ? "NEXT" : "SKIP"}</span>
           </button>
         </div>
       )}
@@ -181,6 +201,13 @@ const styles = {
     alignItems: "center",
   },
   albumArt: { position: "relative", flexShrink: 0 },
+  albumImage: {
+    width: 64,
+    height: 64,
+    borderRadius: 8,
+    objectFit: "cover",
+    border: "1px solid #1DB95420",
+  },
   albumPlaceholder: {
     width: 64, height: 64,
     borderRadius: 8,
@@ -232,6 +259,32 @@ const styles = {
     gap: 6,
     marginTop: 8,
     flexWrap: "wrap",
+  },
+  controls: {
+    display: "flex",
+    gap: 8,
+    marginTop: 12,
+    alignItems: "center",
+  },
+  controlBtn: {
+    width: 34,
+    height: 34,
+    borderRadius: "50%",
+    border: "1px solid #2b2b38",
+    background: "#11131a",
+    color: "#fff",
+    cursor: "pointer",
+    fontSize: 16,
+  },
+  controlBtnPrimary: {
+    width: 40,
+    height: 40,
+    borderRadius: "50%",
+    border: "1px solid #1DB954",
+    background: "#1DB95422",
+    color: "#1DB954",
+    cursor: "pointer",
+    fontSize: 18,
   },
   badge: {
     fontSize: 9,

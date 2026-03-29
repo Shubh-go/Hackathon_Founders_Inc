@@ -55,6 +55,12 @@ body {
   flex: 0 0 auto;
 }
 
+.topbar-actions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
 .logo {
   display: flex;
   align-items: center;
@@ -186,6 +192,126 @@ body {
   animation: blink 1s step-end infinite;
 }
 
+.spotify-auth-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 10px 14px;
+  border-radius: 8px;
+  border: 1px solid var(--green);
+  background: linear-gradient(180deg, #1DB95422 0%, #0f1811 100%);
+  color: var(--green);
+  text-decoration: none;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 1.4px;
+  cursor: pointer;
+}
+
+.spotify-auth-button-muted {
+  border-color: #ffffff14;
+  background: #101018;
+  color: #d2d2d8;
+}
+
+.control-strip {
+  display: grid;
+  grid-template-columns: 0.9fr 0.9fr 1.2fr;
+  gap: 12px;
+  padding: 14px 20px;
+  border-bottom: 1px solid var(--border);
+  background: linear-gradient(180deg, #0a0a0f 0%, #0c1015 100%);
+}
+
+.control-card {
+  min-width: 0;
+  padding: 14px 16px;
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  background: linear-gradient(180deg, #0f1118 0%, #0c0e14 100%);
+  box-shadow: inset 0 1px 0 #ffffff06;
+}
+
+.control-card-wide {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.control-label {
+  display: block;
+  margin-bottom: 8px;
+  color: var(--green);
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 2px;
+  text-transform: uppercase;
+}
+
+.control-value {
+  color: #f7f7fb;
+  font-size: 16px;
+  font-weight: 600;
+  line-height: 1.35;
+}
+
+.control-subtle {
+  margin-top: 6px;
+  color: #7d8493;
+  font-size: 12px;
+  line-height: 1.4;
+}
+
+.control-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.action-button {
+  padding: 10px 14px;
+  border-radius: 10px;
+  border: 1px solid transparent;
+  background: var(--green);
+  color: #04110a;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 1.4px;
+  cursor: pointer;
+}
+
+.action-button:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+.action-button-secondary {
+  background: #121925;
+  border-color: #263244;
+  color: #d6e2ff;
+}
+
+.action-button-ghost {
+  background: transparent;
+  border-color: #1DB95455;
+  color: var(--green);
+}
+
+.error-banner {
+  margin: 12px 20px 0;
+  padding: 10px 14px;
+  border-radius: 10px;
+  border: 1px solid #EF444455;
+  background: #EF444412;
+  color: #ffb4b4;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 11px;
+  letter-spacing: 0.5px;
+}
+
 @keyframes blink {
   0%, 100% { opacity: 1; }
   50% { opacity: 0; }
@@ -229,18 +355,16 @@ body {
 
 /* ===== DEBATE OVERLAY ===== */
 .debate-overlay {
-  position: absolute;
-  bottom: 16px;
-  left: 16px;
-  right: 16px;
   display: flex;
   flex-direction: column;
   gap: 4px;
   padding: 10px 14px;
+  margin: 0 14px 10px;
   background: linear-gradient(135deg, #F59E0B08, #0a0a0f);
   border: 1px solid #F59E0B25;
   border-radius: 8px;
   backdrop-filter: blur(12px);
+  flex-shrink: 0;
 }
 
 .debate-label {
@@ -256,6 +380,60 @@ body {
   font-size: 10px;
   color: #ccc;
   line-height: 1.5;
+}
+
+.debate-override {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-top: 10px;
+}
+
+.debate-input {
+  width: 100%;
+  min-height: 70px;
+  resize: vertical;
+  border-radius: 8px;
+  border: 1px solid #ffffff14;
+  background: #05070bcc;
+  color: #e9edf7;
+  padding: 10px 12px;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 10px;
+  line-height: 1.5;
+}
+
+.debate-input:focus {
+  outline: none;
+  border-color: #1DB95455;
+  box-shadow: 0 0 0 1px #1DB95422;
+}
+
+.debate-override-actions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.debate-apply-btn {
+  border: 1px solid #1DB95455;
+  border-radius: 8px;
+  background: #1DB95418;
+  color: #1DB954;
+  padding: 8px 12px;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 1px;
+  cursor: pointer;
+}
+
+.debate-override-note {
+  color: #9ea6b9;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 10px;
+  line-height: 1.4;
 }
 
 /* ===== MOOD PILL ===== */
@@ -334,4 +512,40 @@ body {
 }
 ::-webkit-scrollbar-thumb:hover {
   background: #ffffff25;
+}
+
+@media (max-width: 1180px) {
+  .control-strip {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 900px) {
+  .topbar {
+    flex-wrap: wrap;
+    gap: 12px;
+  }
+
+  .context-switcher {
+    width: 100%;
+    overflow-x: auto;
+  }
+
+  .main-with-terminal {
+    padding-right: 0;
+  }
+
+  .main {
+    flex-direction: column;
+  }
+
+  .right-col {
+    width: 100%;
+    border-left: none;
+    border-top: 1px solid var(--border);
+  }
+
+  .bottom-charts {
+    grid-template-columns: 1fr;
+  }
 }
