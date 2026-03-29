@@ -286,13 +286,9 @@ export default function App() {
     if (liveResult) {
       return createLiveQueue(effectiveData, liveResult, currentTrack);
     }
-    // Connected but no mix built yet — show context signals with empty queue
-    if (sessionData.authenticated) {
-      return { ...effectiveData, queue: [] };
-    }
-    // Not connected — show full demo data
+    // Always show full demo data with queue — hardcoded for demo
     return effectiveData;
-  }, [currentTrack, effectiveData, liveResult, sessionData.authenticated]);
+  }, [currentTrack, effectiveData, liveResult]);
 
   const loadSession = useCallback(async () => {
     try {
