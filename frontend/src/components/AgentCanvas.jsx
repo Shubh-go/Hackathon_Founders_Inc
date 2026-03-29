@@ -79,7 +79,7 @@ const STATION_LAYOUT = {
   calendar: { hx: 0.56, hy: 0.26 },
   day:      { hx: 0.68, hy: 0.28 },
   emotion:  { hx: 0.80, hy: 0.34 },
-  dj:       { hx: 0.50, hy: 0.58 },
+  dj:       { hx: 0.50, hy: 0.68 },
 };
 
 // ── Pixel art sprite definitions (1=body, 2=accent, 3=eye, 4=highlight) ──
@@ -426,7 +426,7 @@ export default function AgentCanvas({ data, skipEvent, debateActive }) {
     // ═══════════════════════════════════════════════════════════════════
 
     function drawFloor(g, W, H) {
-      const floorY = H * 0.62;
+      const floorY = H * 0.82;
       const ts = 16;
       for (let ty = floorY; ty < H; ty += ts) {
         for (let tx = 0; tx < W; tx += ts) {
@@ -859,7 +859,7 @@ export default function AgentCanvas({ data, skipEvent, debateActive }) {
         const layout = STATION_LAYOUT[this.key];
         this.homeX = W * layout.hx; this.homeY = H * layout.hy;
         this.stageX = W * 0.5 + (this.key === "dj" ? 0 : (this.idx - 3) * 26);
-        this.stageY = this.key === "dj" ? H * 0.52 : H * 0.44;
+        this.stageY = this.key === "dj" ? H * 0.62 : H * 0.50;
         this.wanderX = this.homeX; this.wanderY = this.homeY;
       }
 
@@ -1076,7 +1076,7 @@ export default function AgentCanvas({ data, skipEvent, debateActive }) {
       const fc = p.frameCount;
       const d = dataRef.current;
       const cx = w / 2;
-      const consoleY = h * 0.52;
+      const consoleY = h * 0.62;
 
       // ── Static environment ──
       if (envBuffer) p.image(envBuffer, 0, 0);
@@ -1239,23 +1239,9 @@ export default function AgentCanvas({ data, skipEvent, debateActive }) {
       // ── Mixing console ──
       drawConsole(cx, consoleY, fc);
 
-      // ── Vinyls ──
-      drawVinyl(cx - 110, consoleY + 12, fc);
-      drawVinyl(cx + 110, consoleY + 12, fc);
-
       // ── Draw agents (z-sorted) ──
       const sorted = [...agents].sort((a, b) => a.y - b.y);
       sorted.forEach(a => a.draw());
-
-      // ── Speakers ──
-      drawSpeaker(w * 0.04, h * 0.72, fc, 0);
-      drawSpeaker(w * 0.92, h * 0.72, fc, 1);
-      if (fc % 4 === 0) {
-        particles.push(
-          { x: w * 0.04 + 16, y: h * 0.72 + 20, vx: -0.6, vy: (Math.random() - 0.5) * 0.4, life: 18, maxLife: 18, color: [255, 255, 255], size: 1.5 },
-          { x: w * 0.92 + 16, y: h * 0.72 + 20, vx: 0.6, vy: (Math.random() - 0.5) * 0.4, life: 18, maxLife: 18, color: [255, 255, 255], size: 1.5 },
-        );
-      }
 
       // ── Particles ──
       for (let i = particles.length - 1; i >= 0; i--) {
