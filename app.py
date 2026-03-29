@@ -1163,10 +1163,12 @@ def get_session_status():
         return jsonify({"authenticated": False, "scopes": []})
 
     response, error = spotify_api_get("/me")
-    if error:
-        return error
-    if not response.ok:
-        return jsonify({"authenticated": False, "scopes": sorted(get_token_scopes())}), 200
+    if error or not response or not response.ok:
+        # Token exists with scopes but /me failed — still authenticated, just can't get profile
+        scopes = sorted(get_token_scopes())
+        if scopes:
+            return jsonify({"authenticated": True, "scopes": scopes, "user": {"display_name": "Spotify User", "id": "unknown", "product": "unknown"}})
+        return jsonify({"authenticated": False, "scopes": scopes}), 200
 
     data = response.json()
     return jsonify(
