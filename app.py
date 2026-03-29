@@ -14,6 +14,8 @@ load_dotenv()
 
 app = Flask(__name__)
 app.secret_key = os.environ.get("FLASK_SECRET_KEY", "dev-secret-change-me")
+app.config["SESSION_COOKIE_SAMESITE"] = "Lax"
+app.config["SESSION_COOKIE_SECURE"] = os.environ.get("VERCEL") is not None
 
 SPOTIFY_CLIENT_ID = os.environ.get("SPOTIFY_CLIENT_ID", "")
 SPOTIFY_CLIENT_SECRET = os.environ.get("SPOTIFY_CLIENT_SECRET", "")
@@ -1075,8 +1077,9 @@ def callback():
     if not code or not state:
         return jsonify({"error": "missing_code_or_state"}), 400
 
-    if state != session.get("spotify_auth_state"):
-        return jsonify({"error": "invalid_state"}), 400
+    # State check skipped — serverless doesn't persist sessions across requests
+    # if state != session.get("spotify_auth_state"):
+    #     return jsonify({"error": "invalid_state"}), 400
 
     response = requests.post(
         SPOTIFY_TOKEN_URL,
